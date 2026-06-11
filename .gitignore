@@ -34,3 +34,6 @@ Thumbs.db
 # Generated local artifacts
 .local/
 .tmp/
+
+# NX cache
+.nx/
