@@ -1,7 +1,0 @@
-[2m> [22mpnpm --dir libs/ai-workflows lint
-
-
-> @ai-designops/ai-workflows@0.1.0 lint C:\PersonalDev\ai-designs-copilot\libs\ai-workflows
-> echo ai-workflows lint placeholder
-
-ai-workflows lint placeholder

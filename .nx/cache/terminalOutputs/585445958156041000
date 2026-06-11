@@ -1,7 +1,0 @@
-[2m> [22mpnpm --dir apps/web test
-
-
-> @ai-designops/web@0.1.0 test C:\PersonalDev\ai-designs-copilot\apps\web
-> echo web test placeholder
-
-web test placeholder

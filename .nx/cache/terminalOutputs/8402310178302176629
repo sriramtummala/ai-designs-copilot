@@ -1,7 +1,0 @@
-[2m> [22mpnpm --dir apps/web lint
-
-
-> @ai-designops/web@0.1.0 lint C:\PersonalDev\ai-designs-copilot\apps\web
-> echo web lint placeholder
-
-web lint placeholder

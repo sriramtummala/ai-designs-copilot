@@ -1,7 +1,0 @@
-[2m> [22mpnpm --dir libs/ui test
-
-
-> @ai-designops/ui@0.1.0 test C:\PersonalDev\ai-designs-copilot\libs\ui
-> echo ui test placeholder
-
-ui test placeholder

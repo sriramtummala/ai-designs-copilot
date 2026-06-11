@@ -1,7 +1,0 @@
-[2m> [22mpnpm --dir apps/api build
-
-
-> @ai-designops/api@0.1.0 build C:\PersonalDev\ai-designs-copilot\apps\api
-> echo api build placeholder
-
-api build placeholder

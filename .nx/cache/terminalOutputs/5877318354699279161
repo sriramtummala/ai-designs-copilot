@@ -1,7 +1,0 @@
-[2m> [22mpnpm --dir apps/api test
-
-
-> @ai-designops/api@0.1.0 test C:\PersonalDev\ai-designs-copilot\apps\api
-> echo api test placeholder
-
-api test placeholder

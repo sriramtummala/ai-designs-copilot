@@ -1,7 +1,0 @@
-[2m> [22mpnpm --dir libs/compliance test
-
-
-> @ai-designops/compliance@0.1.0 test C:\PersonalDev\ai-designs-copilot\libs\compliance
-> echo compliance test placeholder
-
-compliance test placeholder

@@ -1,7 +1,0 @@
-[2m> [22mpnpm --dir libs/ai-workflows build
-
-
-> @ai-designops/ai-workflows@0.1.0 build C:\PersonalDev\ai-designs-copilot\libs\ai-workflows
-> echo ai-workflows build placeholder
-
-ai-workflows build placeholder

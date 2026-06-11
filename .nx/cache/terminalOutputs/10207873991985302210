@@ -1,7 +1,0 @@
-[2m> [22mpnpm --dir libs/tokens build
-
-
-> @ai-designops/tokens@0.1.0 build C:\PersonalDev\ai-designs-copilot\libs\tokens
-> echo tokens build placeholder
-
-tokens build placeholder
