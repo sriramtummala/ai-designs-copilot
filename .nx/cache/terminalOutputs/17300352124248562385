@@ -1,0 +1,7 @@
+[2m> [22mpnpm --dir libs/cms-adapter build
+
+
+> @ai-designops/cms-adapter@0.1.0 build C:\PersonalDev\ai-designs-copilot\libs\cms-adapter
+> echo cms-adapter build placeholder
+
+cms-adapter build placeholder

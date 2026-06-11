@@ -1,0 +1,11 @@
+{
+  "name": "@ai-designops/ai-workflows",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "echo ai-workflows lint placeholder",
+    "test": "echo ai-workflows test placeholder",
+    "build": "echo ai-workflows build placeholder"
+  }
+}

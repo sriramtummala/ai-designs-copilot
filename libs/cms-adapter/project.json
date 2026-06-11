@@ -1,0 +1,13 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "cms-adapter",
+  "projectType": "library",
+  "root": "libs/cms-adapter",
+  "sourceRoot": "libs/cms-adapter/src",
+  "tags": ["scope:cms", "type:adapter"],
+  "targets": {
+    "lint": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/cms-adapter lint" } },
+    "test": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/cms-adapter test" } },
+    "build": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/cms-adapter build" } }
+  }
+}

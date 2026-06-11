@@ -1,0 +1,87 @@
+{
+  "run": {
+    "command": "nx run-many -t build",
+    "startTime": "2026-06-11T22:14:05.546Z",
+    "endTime": "2026-06-11T22:14:06.826Z",
+    "inner": false
+  },
+  "tasks": [
+    {
+      "taskId": "ai-workflows:build",
+      "target": "build",
+      "projectName": "ai-workflows",
+      "hash": "10247515933461312656",
+      "startTime": "2026-06-11T22:14:05.558Z",
+      "endTime": "2026-06-11T22:14:05.981Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 0
+    },
+    {
+      "taskId": "cms-adapter:build",
+      "target": "build",
+      "projectName": "cms-adapter",
+      "hash": "17300352124248562385",
+      "startTime": "2026-06-11T22:14:05.558Z",
+      "endTime": "2026-06-11T22:14:06.013Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 0
+    },
+    {
+      "taskId": "compliance:build",
+      "target": "build",
+      "projectName": "compliance",
+      "hash": "2288319602233395205",
+      "startTime": "2026-06-11T22:14:05.558Z",
+      "endTime": "2026-06-11T22:14:06.066Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 0
+    },
+    {
+      "taskId": "tokens:build",
+      "target": "build",
+      "projectName": "tokens",
+      "hash": "10207873991985302210",
+      "startTime": "2026-06-11T22:14:05.990Z",
+      "endTime": "2026-06-11T22:14:06.420Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 0
+    },
+    {
+      "taskId": "api:build",
+      "target": "build",
+      "projectName": "api",
+      "hash": "3632072357334773081",
+      "startTime": "2026-06-11T22:14:06.021Z",
+      "endTime": "2026-06-11T22:14:06.449Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 0
+    },
+    {
+      "taskId": "web:build",
+      "target": "build",
+      "projectName": "web",
+      "hash": "15813154204038001621",
+      "startTime": "2026-06-11T22:14:06.073Z",
+      "endTime": "2026-06-11T22:14:06.496Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 0
+    },
+    {
+      "taskId": "ui:build",
+      "target": "build",
+      "projectName": "ui",
+      "hash": "7492924765289358202",
+      "startTime": "2026-06-11T22:14:06.427Z",
+      "endTime": "2026-06-11T22:14:06.821Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 0
+    }
+  ]
+}

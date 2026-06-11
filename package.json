@@ -1,0 +1,20 @@
+{
+  "name": "ai-designops-copilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Governed AI DesignOps Copilot monorepo for RAG, design-system governance, CMS-style output, and workflow automation.",
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "nx": "nx",
+    "graph": "nx graph",
+    "projects": "nx show projects",
+    "lint": "nx run-many -t lint",
+    "test": "nx run-many -t test",
+    "build": "nx run-many -t build",
+    "validate:workspace": "py scripts/validate_workspace.py"
+  },
+  "devDependencies": {
+    "nx": "latest",
+    "typescript": "latest"
+  }
+}

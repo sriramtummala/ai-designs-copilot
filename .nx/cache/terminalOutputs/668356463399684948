@@ -1,0 +1,10 @@
+[2m> [22mpnpm --dir apps/api lint
+
+
+> @ai-designops/api@0.1.0 lint C:\PersonalDev\ai-designs-copilot\apps\api
+> python ../../scripts/validate_api_layout.py
+
+Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.
+[41m[30m ELIFECYCLE [39m[49m [31mCommand failed with exit code 9009.[39m
+[43m[30m WARN [39m[49m  Local package.json exists, but node_modules missing, did you mean to install?
+Warning: command "pnpm --dir apps/api lint" exited with non-zero status code

@@ -1,0 +1,7 @@
+[2m> [22mpnpm --dir apps/web build
+
+
+> @ai-designops/web@0.1.0 build C:\PersonalDev\ai-designs-copilot\apps\web
+> echo web build placeholder
+
+web build placeholder

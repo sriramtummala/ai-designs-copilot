@@ -1,0 +1,10 @@
+{
+  "name": "@ai-designops/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "lint": "py ../../scripts/validate_api_layout.py",
+    "test": "echo api test placeholder",
+    "build": "echo api build placeholder"
+  }
+}

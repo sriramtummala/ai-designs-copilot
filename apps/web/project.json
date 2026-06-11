@@ -1,0 +1,22 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "web",
+  "projectType": "application",
+  "root": "apps/web",
+  "sourceRoot": "apps/web/src",
+  "tags": ["scope:frontend", "type:app"],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm --dir apps/web lint" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm --dir apps/web test" }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm --dir apps/web build" }
+    }
+  }
+}

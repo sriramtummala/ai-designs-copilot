@@ -1,0 +1,7 @@
+[2m> [22mpnpm --dir libs/compliance lint
+
+
+> @ai-designops/compliance@0.1.0 lint C:\PersonalDev\ai-designs-copilot\libs\compliance
+> echo compliance lint placeholder
+
+compliance lint placeholder

@@ -1,0 +1,7 @@
+[2m> [22mpnpm --dir apps/api lint
+
+
+> @ai-designops/api@0.1.0 lint C:\PersonalDev\ai-designs-copilot\apps\api
+> py ../../scripts/validate_api_layout.py
+
+API layout validation passed.

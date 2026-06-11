@@ -1,0 +1,11 @@
+{
+  "name": "@ai-designops/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "echo web lint placeholder",
+    "test": "echo web test placeholder",
+    "build": "echo web build placeholder"
+  }
+}

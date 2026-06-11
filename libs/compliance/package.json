@@ -1,0 +1,11 @@
+{
+  "name": "@ai-designops/compliance",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "echo compliance lint placeholder",
+    "test": "echo compliance test placeholder",
+    "build": "echo compliance build placeholder"
+  }
+}

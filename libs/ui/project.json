@@ -1,0 +1,13 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "ui",
+  "projectType": "library",
+  "root": "libs/ui",
+  "sourceRoot": "libs/ui/src",
+  "tags": ["scope:design-system", "type:ui"],
+  "targets": {
+    "lint": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/ui lint" } },
+    "test": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/ui test" } },
+    "build": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/ui build" } }
+  }
+}

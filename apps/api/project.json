@@ -1,0 +1,22 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "api",
+  "projectType": "application",
+  "root": "apps/api",
+  "sourceRoot": "apps/api/src",
+  "tags": ["scope:backend", "type:app"],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm --dir apps/api lint" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm --dir apps/api test" }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm --dir apps/api build" }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "tokens",
+  "projectType": "library",
+  "root": "libs/tokens",
+  "sourceRoot": "libs/tokens/src",
+  "tags": ["scope:design-system", "type:tokens"],
+  "targets": {
+    "lint": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/tokens lint" } },
+    "test": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/tokens test" } },
+    "build": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/tokens build" } }
+  }
+}

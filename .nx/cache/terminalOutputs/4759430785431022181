@@ -1,0 +1,7 @@
+[2m> [22mpnpm --dir libs/ui lint
+
+
+> @ai-designops/ui@0.1.0 lint C:\PersonalDev\ai-designs-copilot\libs\ui
+> echo ui lint placeholder
+
+ui lint placeholder

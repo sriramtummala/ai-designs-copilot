@@ -1,0 +1,11 @@
+{
+  "name": "@ai-designops/cms-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "echo cms-adapter lint placeholder",
+    "test": "echo cms-adapter test placeholder",
+    "build": "echo cms-adapter build placeholder"
+  }
+}

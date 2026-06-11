@@ -1,0 +1,13 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "ai-workflows",
+  "projectType": "library",
+  "root": "libs/ai-workflows",
+  "sourceRoot": "libs/ai-workflows/src",
+  "tags": ["scope:ai", "type:workflow"],
+  "targets": {
+    "lint": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/ai-workflows lint" } },
+    "test": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/ai-workflows test" } },
+    "build": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/ai-workflows build" } }
+  }
+}

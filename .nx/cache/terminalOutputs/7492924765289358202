@@ -1,0 +1,7 @@
+[2m> [22mpnpm --dir libs/ui build
+
+
+> @ai-designops/ui@0.1.0 build C:\PersonalDev\ai-designs-copilot\libs\ui
+> echo ui build placeholder
+
+ui build placeholder

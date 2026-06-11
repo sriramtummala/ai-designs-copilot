@@ -1,0 +1,13 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "compliance",
+  "projectType": "library",
+  "root": "libs/compliance",
+  "sourceRoot": "libs/compliance/src",
+  "tags": ["scope:governance", "type:rules"],
+  "targets": {
+    "lint": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/compliance lint" } },
+    "test": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/compliance test" } },
+    "build": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/compliance build" } }
+  }
+}

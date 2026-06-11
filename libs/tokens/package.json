@@ -1,0 +1,11 @@
+{
+  "name": "@ai-designops/tokens",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "echo tokens lint placeholder",
+    "test": "echo tokens test placeholder",
+    "build": "echo tokens build placeholder"
+  }
+}
