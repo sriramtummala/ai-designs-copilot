@@ -9,7 +9,7 @@ __pycache__/
 dist/
 build/
 coverage/
-.storybook-static/
+storybook-static/
 
 # Environment and secrets
 .env
