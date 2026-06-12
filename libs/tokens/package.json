@@ -8,7 +8,8 @@
       "types": "./dist/js/tokens.d.ts",
       "default": "./dist/js/tokens.js"
     },
-    "./theme.css": "./dist/css/theme.css"
+    "./theme.css": "./dist/css/theme.css",
+    "./dist/json/tokens-docs.json": "./dist/json/tokens-docs.json"
   },
   "scripts": {
     "lint": "echo tokens lint placeholder",

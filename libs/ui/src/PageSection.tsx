@@ -1,6 +1,6 @@
 import React from 'react';
  
-interface PageSectionProps {
+export interface PageSectionProps {
   children: React.ReactNode;
   title?: string;
 }

@@ -8,6 +8,8 @@
   "targets": {
     "lint": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/ui lint" } },
     "test": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/ui test" } },
-    "build": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/ui build" } }
+    "build": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/ui build" } },
+    "storybook": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/ui storybook" } },
+    "storybook-build": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/ui storybook:build" } }
   }
 }

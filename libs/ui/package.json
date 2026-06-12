@@ -6,17 +6,25 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
+    "storybook": "storybook dev -p 6006",
+    "storybook:build": "storybook build",
     "lint": "echo ui lint placeholder",
     "test": "echo ui test placeholder"
   },
-  "dependencies": {
-    "react": "^18.3.1"
+  "peerDependencies": {
+    "react": ">=18"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
+    "@ai-designops/tokens": "workspace:*",
+    "@storybook/react-vite": "^10.4.4",
+    "@types/react": "^19.0.0",
+    "react": "^19.2.6",
+    "storybook": "^10.4.4",
     "typescript": "^5.2.2"
   }
 }
