@@ -6,6 +6,9 @@
   "scripts": {
     "lint": "echo tokens lint placeholder",
     "test": "echo tokens test placeholder",
-    "build": "echo tokens build placeholder"
+    "build": "node style-dictionary.config.js"
+  },
+  "devDependencies": {
+    "style-dictionary": "^5.4.4"
   }
 }
