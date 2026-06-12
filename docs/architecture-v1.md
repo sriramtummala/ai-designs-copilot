@@ -1,30 +1,36 @@
-## 1. Architecture Intent
+## 1. Introduction
  
-The system is designed as a governed AI workflow rather than a single prompt. Each major responsibility is separated into a component so that request intake, retrieval, planning, compliance, approval, CMS output, and ticket automation can be tested and evolved independently.
-
-## 2. High-Level System Diagram
+This document outlines the initial architecture for the AI DesignOps Copilot, a system designed to automate and govern the generation of digital content (e.g., web pages, blog posts) for brand, design-system, and CMS teams. The system aims to provide structured, compliant, and on-brand content through an AI-assisted workflow.
+ 
+## 2. System Overview
+ 
+The AI DesignOps Copilot is structured as a monorepo, separating concerns into distinct applications and libraries. This modular approach facilitates maintainability, testability, and clear ownership boundaries.
+ 
+### 2.1 High-Level Component Diagram
  
 ```mermaid
-flowchart TD
-    U[User: Brand / Design / Content / Engineering] --> WEB[React Request UI]
-    WEB --> API[FastAPI Workflow API]
-    API --> WF[Agentic Workflow Orchestrator]
- 
-    WF --> RAG[RAG Retrieval Layer]
-    RAG --> KB[(Approved Knowledge Base)]
-    KB --> BG[Brand Guidelines]
-    KB --> CR[Component Registry]
-    KB --> DT[Design Tokens]
-    KB --> AR[Accessibility Rules]
-    KB --> CMSR[CMS Page Rules]
- 
-    WF --> PLAN[Layout Planner]
-    PLAN --> COMP[Compliance Checker]
-    COMP --> APPROVAL[Human Approval Gate]
-    APPROVAL --> YAML[CMS-Style YAML Generator]
-    APPROVAL --> TICKET[Ticket Automation]
- 
-    YAML --> CMS[CMS Adapter / Bloomreach-Style Simulation]
-    TICKET --> JIRA[Jira or GitHub Issues]
- 
-    API --> LOGS[Trace Logs and Evaluation Evidence]
+graph TD
+    A["User (DesignOps/Marketing)"]
+    B["Frontend Web App"]
+    C["FastAPI Backend API"]
+    D["Compliance Library"]
+    E["AI Workflows Library"]
+    F["RAG Knowledge Base"]
+    G["LLM Service"]
+    H["Tokens Library"]
+    I["CMS Adapter Library"]
+    J["CMS Publishing System"]
+
+    A -->|"Submits Request"| B
+    B -->|"Structured Request"| C
+    C -->|"Validates Request"| D
+    C -->|"Orchestrates Workflow"| E
+    E -->|"Retrieves Knowledge"| F
+    E -->|"Generates Content Plan"| G
+    E -->|"Applies Design Tokens"| H
+    E -->|"Formats CMS Output"| I
+    I -->|"Publishes"| J
+    C -->|"Returns State"| B
+    B -->|"Displays Status"| A
+
+
