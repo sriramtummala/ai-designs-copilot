@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./tokens": {
+      "types": "./dist/js/tokens.d.ts",
+      "default": "./dist/js/tokens.js"
+    },
+    "./theme.css": "./dist/css/theme.css"
+  },
   "scripts": {
     "lint": "echo tokens lint placeholder",
     "test": "echo tokens test placeholder",

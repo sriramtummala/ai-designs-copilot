@@ -11,6 +11,8 @@
     "test": "echo web test placeholder"
   },
   "dependencies": {
+    "@ai-designops/tokens": "workspace:*",
+    "@ai-designops/ui": "workspace:*",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },

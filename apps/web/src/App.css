@@ -1,87 +1,54 @@
-.container {
-  max-width: 640px;
+container {
+  max-width: 800px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: var(--spacing-lg);
+  font-family: var(--font-family-base);
 }
-
-header {
-  margin-bottom: 32px;
-}
-
-.subtitle {
-  color: var(--text);
-  margin-top: 4px;
-}
-
-.card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 32px;
+ 
+.request-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--spacing-md);
+  /* background: var(--color-background-alt); */ /* Card handles background */
+  /* padding: var(--spacing-lg); */ /* Card handles padding */
+  /* border-radius: var(--radius-md); */ /* Card handles border-radius */
+  /* border: 1px solid var(--color-gray-200); */ /* Card handles border */
 }
-
+ 
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+ 
 label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-h);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-default);
 }
-
-input,
-select,
+ 
+select, textarea {
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-gray-300);
+  font-size: var(--font-size-md);
+  color: var(--color-text-default);
+  background-color: var(--color-background-default);
+}
+ 
 textarea {
-  font: inherit;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--text-h);
-  width: 100%;
-  box-sizing: border-box;
-
-  &:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
+  height: 100px;
 }
-
-textarea {
-  resize: vertical;
-}
-
-button[type='submit'],
-button {
-  font: inherit;
-  font-weight: 500;
-  padding: 10px 20px;
-  border-radius: 6px;
-  border: none;
-  background: var(--accent);
-  color: #fff;
-  cursor: pointer;
-  align-self: flex-start;
-
-  &:hover {
-    opacity: 0.9;
-  }
-}
-
-.output {
-  background: var(--code-bg);
-  border-radius: 6px;
-  padding: 16px;
-  font-size: 13px;
-  text-align: left;
+ 
+/* Remove .submit-btn as Button component handles styling */
+/* .submit-btn { ... } */
+ 
+/* Remove .result-panel as Card component handles styling */
+/* .result-panel { ... } */
+ 
+pre {
+  background: var(--color-gray-800);
+  color: var(--color-white-0);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
   overflow-x: auto;
-  white-space: pre-wrap;
-}
-
-.note {
-  font-size: 13px;
-  color: var(--text);
 }
