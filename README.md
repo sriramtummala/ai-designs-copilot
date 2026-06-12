@@ -28,3 +28,50 @@ libs/cms-adapter      CMS-style YAML and publishing adapter logic.
 libs/ai-workflows     Agentic workflow orchestration and state models.
 docs                  Architecture, learning log, decisions, screenshots, and interview notes.
 scripts               Utility scripts for setup, validation, and automation.
+```
+
+## FastAPI Backend API Shell
+ 
+Day 4 established the FastAPI backend API shell within `apps/api`. This includes defining explicit API contracts using Pydantic models for `PageRequest`, `ComplianceFinding`, `PagePlan`, and `WorkflowState`. Foundational endpoints (`/health`, `/page-request/validate`, `/workflow/mock-run`) were implemented to provide a structured interface for the frontend and future AI components.
+ 
+### Verification Commands
+ 
+```bash
+cd apps/api
+source .venv/bin/activate
+uvicorn main:app --reload --port 8000
+# In a new terminal:
+curl http://127.0.0.1:8000/health
+curl -X POST "http://127.0.0.1:8000/page-request/validate" -H "Content-Type: application/json" -d '{"page_type": "landing_page", "audience": "marketers", "brand": "brand_a", "channel": "web", "notes": "This is an urgent request."}'
+curl -X POST "http://127.0.0.1:8000/workflow/mock-run" -H "Content-Type: application/json" -d '{"page_type": "blog_post", "audience": "developers", "brand": "brand_b", "channel": "web", "notes": "Technical article."}'
+# Open http://127.0.0.1:8000/docs in browser
+```
+
+## Running the Frontend
+
+**Prerequisites:** Node.js 18+, pnpm
+
+Install dependencies from the repo root:
+
+```bash
+pnpm install
+```
+
+Start the dev server:
+
+```bash
+# From repo root
+pnpm nx run web:dev
+
+# Or directly from apps/web
+cd apps/web
+pnpm dev
+```
+
+Opens at **http://localhost:5173**
+
+Build for production:
+
+```bash
+pnpm nx run web:build
+```
