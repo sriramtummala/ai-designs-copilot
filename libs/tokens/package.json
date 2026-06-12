@@ -14,7 +14,8 @@
   "scripts": {
     "lint": "echo tokens lint placeholder",
     "test": "echo tokens test placeholder",
-    "build": "node style-dictionary.config.js"
+    "build": "node style-dictionary.config.js",
+    "check": "pnpm run build && git diff --exit-code --quiet dist/"
   },
   "devDependencies": {
     "style-dictionary": "^5.4.4"

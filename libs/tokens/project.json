@@ -8,6 +8,7 @@
   "targets": {
     "lint": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/tokens lint" } },
     "test": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/tokens test" } },
-    "build": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/tokens build" } }
+    "build": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/tokens build" } },
+    "check": { "executor": "nx:run-commands", "options": { "command": "pnpm --dir libs/tokens check" } }
   }
 }
