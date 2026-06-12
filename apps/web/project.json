@@ -6,6 +6,10 @@
   "sourceRoot": "apps/web/src",
   "tags": ["scope:frontend", "type:app"],
   "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm --dir apps/web dev" }
+    },
     "lint": {
       "executor": "nx:run-commands",
       "options": { "command": "pnpm --dir apps/web lint" }

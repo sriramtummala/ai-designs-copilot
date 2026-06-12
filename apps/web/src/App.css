@@ -1,0 +1,87 @@
+.container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+header {
+  margin-bottom: 32px;
+}
+
+.subtitle {
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  width: 100%;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+textarea {
+  resize: vertical;
+}
+
+button[type='submit'],
+button {
+  font: inherit;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  align-self: flex-start;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.output {
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 16px;
+  font-size: 13px;
+  text-align: left;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.note {
+  font-size: 13px;
+  color: var(--text);
+}
