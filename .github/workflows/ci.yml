@@ -44,3 +44,6 @@ jobs:
  
       - name: Run Workspace Validation Script
         run: python3 scripts/validate_workspace.py
+
+      - name: Check Design Token Drift
+        run: pnpm nx run tokens:check

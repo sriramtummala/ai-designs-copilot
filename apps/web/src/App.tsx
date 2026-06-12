@@ -1,9 +1,13 @@
 import { useState } from 'react';
-import { Button, Card, Alert, PageSection } from '@ai-designops/ui'; // Import components
+import { Button, Card, Alert, PageSection } from '@ai-designops/ui';
 import '@ai-designops/tokens/theme.css';
-import './App.css'; // Keep existing app-specific CSS
- 
+import './App.css';
+import DsComparison from './DsComparison';
+
+type View = 'form' | 'tokens'
+
 function App() {
+  const [view, setView] = useState<View>('form')
   const [formData, setFormData] = useState({
     pageType: 'landing_page',
     audience: 'developers',
@@ -24,9 +28,13 @@ function App() {
         <PageSection title="AI DesignOps Copilot">
           <p>Structured Page Generation Request</p>
         </PageSection>
+        <nav style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <button onClick={() => setView('form')} style={{ fontWeight: view === 'form' ? 700 : 400 }}>Request form</button>
+          <button onClick={() => setView('tokens')} style={{ fontWeight: view === 'tokens' ? 700 : 400 }}>Token comparison</button>
+        </nav>
       </header>
- 
-      <main>
+
+      {view === 'tokens' ? <DsComparison /> : <main>
         <Card title="New Page Request">
           <Alert type="info">Fill out the form below to generate a page plan.</Alert>
           <form onSubmit={handleSubmit} className="request-form">
@@ -93,7 +101,7 @@ function App() {
         <Card title="Request Preview">
           <pre>{JSON.stringify(formData, null, 2)}</pre>
         </Card>
-      </main>
+      </main>}
     </div>
   );
 }
