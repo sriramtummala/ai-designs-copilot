@@ -18,6 +18,7 @@ load_dotenv(override=True)
 from libs.rag.create_embeddings import get_index, get_model, retrieve
 from libs.llm.prompts import PromptContext, build_system_prompt, build_user_prompt
 
+FEEDBACK_LOG_FILE = "./data/feedback.jsonl"
 
 # --- Lifespan ---
 
@@ -37,6 +38,7 @@ async def lifespan(_app: FastAPI):
     else:
         openai_client = OpenAI(api_key=api_key)
         print("OpenAI client initialized.")
+    os.makedirs(os.path.dirname(FEEDBACK_LOG_FILE), exist_ok=True)
     yield
     print("Shutting down...")
     openai_client = None
@@ -122,12 +124,22 @@ class GenerationRequest(BaseModel):
     brand: Brand
     channel: Channel
     notes: Optional[str] = None
-    llm_model: Optional[str] = None
+    llm_model: str = Field(default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+    temperature: float = Field(0.7, ge=0.0, le=2.0, description="Controls randomness. Lower = more deterministic.")
+    top_p: float = Field(1.0, ge=0.0, le=1.0, description="Nucleus sampling probability mass.")
+    frequency_penalty: float = Field(0.0, ge=-2.0, le=2.0, description="Penalizes tokens by existing frequency.")
+    presence_penalty: float = Field(0.0, ge=-2.0, le=2.0, description="Penalizes tokens that have already appeared.")
+    max_tokens: int = Field(1000, ge=1, description="Maximum tokens to generate.")
 
 class GenerationResponse(BaseModel):
     generated_content: str
     retrieved_context: List[dict]
     llm_model_used: str
+    temperature: float
+    top_p: float
+    frequency_penalty: float
+    presence_penalty: float
+    max_tokens: int
 
 
 # --- Endpoints ---
@@ -255,16 +267,18 @@ async def generate_content(request: GenerationRequest):
     )
 
     # 4. Call the LLM
-    model = request.llm_model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     try:
         chat_completion = openai_client.chat.completions.create(
-            model=model,
+            model=request.llm_model,
             messages=[
                 {"role": "system", "content": build_system_prompt(ctx)},
                 {"role": "user", "content": build_user_prompt(ctx)},
             ],
-            temperature=0.7,
-            max_tokens=1000,
+            temperature=request.temperature,
+            top_p=request.top_p,
+            frequency_penalty=request.frequency_penalty,
+            presence_penalty=request.presence_penalty,
+            max_tokens=request.max_tokens,
         )
         generated_content = chat_completion.choices[0].message.content
     except Exception as e:
@@ -273,5 +287,29 @@ async def generate_content(request: GenerationRequest):
     return GenerationResponse(
         generated_content=generated_content,
         retrieved_context=[{"metadata": r["metadata"], "content": r["content"]} for r in results],
-        llm_model_used=model,
+        llm_model_used=request.llm_model,
+        temperature=request.temperature,
+        top_p=request.top_p,
+        frequency_penalty=request.frequency_penalty,
+        presence_penalty=request.presence_penalty,
+        max_tokens=request.max_tokens,
     )
+
+
+class FeedbackRequest(BaseModel):
+    generation_id: str = Field(..., description="Unique ID of the generated content.")
+    user_rating: int = Field(..., ge=1, le=5, description="User rating (1-5 stars).")
+    comments: Optional[str] = Field(None, description="Optional comments on the generation quality.")
+
+
+@app.post("/feedback", summary="Submit feedback on generated content")
+async def submit_feedback(request: FeedbackRequest):
+    feedback_entry = {
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "generation_id": request.generation_id,
+        "user_rating": request.user_rating,
+        "comments": request.comments,
+    }
+    with open(FEEDBACK_LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(json.dumps(feedback_entry) + "\n")
+    return {"message": "Feedback submitted successfully", "feedback_id": request.generation_id}
