@@ -20,6 +20,8 @@ storybook-static/
 
 # Logs
 *.log
+uvicorn_out.txt
+uvicorn_err.txt
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*

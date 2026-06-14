@@ -1,25 +1,45 @@
 import datetime
+import json
+import os
 import sys
 import uuid
 from contextlib import asynccontextmanager
 from enum import Enum
 from typing import List, Optional
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from openai import OpenAI
 from pydantic import BaseModel, Field
 
 # Allow importing from the monorepo root
 sys.path.append(".")
+load_dotenv(override=True)
 from libs.rag.create_embeddings import get_index, get_model, retrieve
+from libs.llm.prompts import PromptContext, build_system_prompt, build_user_prompt
 
 
 # --- Lifespan ---
 
+openai_client: OpenAI | None = None
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    global openai_client
+    print("Starting up: Loading RAG components...")
     get_model()
     get_index()
+    print("RAG components loaded successfully.")
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print("Warning: OPENAI_API_KEY not set.")
+    else:
+        openai_client = OpenAI(api_key=api_key)
+        print("OpenAI client initialized.")
     yield
+    print("Shutting down...")
+    openai_client = None
 
 
 app = FastAPI(
@@ -96,12 +116,29 @@ class RetrievalResponse(BaseModel):
     query: str
     results: List[RetrievalResult]
 
+class GenerationRequest(BaseModel):
+    page_type: PageType
+    audience: Audience
+    brand: Brand
+    channel: Channel
+    notes: Optional[str] = None
+    llm_model: Optional[str] = None
+
+class GenerationResponse(BaseModel):
+    generated_content: str
+    retrieved_context: List[dict]
+    llm_model_used: str
+
 
 # --- Endpoints ---
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "message": "AI DesignOps Copilot API is healthy"}
+    return {
+        "status": "ok",
+        "rag_loaded": True,
+        "openai_client_ready": openai_client is not None,
+    }
 
 
 @app.post("/rag/retrieve", response_model=RetrievalResponse, summary="RAG Retrieval")
@@ -173,4 +210,68 @@ async def mock_workflow_run(request: PageRequest):
         compliance_findings=compliance_findings,
         page_plan=mock_page_plan,
         last_updated=current_time,
+    )
+
+
+@app.post("/generate", response_model=GenerationResponse, summary="Generate content via LLM")
+async def generate_content(request: GenerationRequest):
+    if not openai_client:
+        raise HTTPException(status_code=503, detail="OpenAI client not initialized. Check OPENAI_API_KEY.")
+
+    # 1. Retrieve relevant context from the knowledge base
+    retrieval_query = (
+        f"Guidelines for {request.page_type.value} for {request.brand.value} "
+        f"targeting {request.audience.value}. {request.notes or ''}"
+    )
+    try:
+        raw_results = retrieve(retrieval_query, k=5)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"RAG retrieval failed: {e}")
+
+    # Apply metadata filters; fall back to unfiltered results if nothing matches
+    filters = {
+        "brand": request.brand.value,
+        "channel": request.channel.value,
+        "page_type": request.page_type.value,
+    }
+    filtered = [r for r in raw_results if all(r["metadata"].get(k) == v for k, v in filters.items())]
+    results = filtered if filtered else raw_results
+
+    # 2. Format context string for the prompt
+    context_text = (
+        "\n\n".join(json.dumps(r["metadata"]) + "\n" + r["content"] for r in results)
+        if results
+        else "No specific context found in the knowledge base. Rely on general knowledge."
+    )
+
+    # 3. Build prompts via PromptContext
+    ctx = PromptContext(
+        page_type=request.page_type.value,
+        audience=request.audience.value,
+        brand=request.brand.value,
+        channel=request.channel.value,
+        retrieved_context=context_text,
+        notes=request.notes or "",
+    )
+
+    # 4. Call the LLM
+    model = request.llm_model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    try:
+        chat_completion = openai_client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": build_system_prompt(ctx)},
+                {"role": "user", "content": build_user_prompt(ctx)},
+            ],
+            temperature=0.7,
+            max_tokens=1000,
+        )
+        generated_content = chat_completion.choices[0].message.content
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"LLM generation error: {e}")
+
+    return GenerationResponse(
+        generated_content=generated_content,
+        retrieved_context=[{"metadata": r["metadata"], "content": r["content"]} for r in results],
+        llm_model_used=model,
     )
