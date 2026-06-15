@@ -6,7 +6,7 @@ sys.path.append("./libs/ai-workflows")
 from states import ContentWorkflowState, STATE_TRANSITIONS, INITIAL_STATE
 from libs.llm.agents.core import create_agent
 
-# Maps each active workflow state to the agent responsible for that phase
+# HUMAN_REVIEW is intentionally absent — no agent runs automatically for that state.
 STATE_AGENT_MAP: Dict[ContentWorkflowState, str] = {
     ContentWorkflowState.PLANNING: "planner",
     ContentWorkflowState.DRAFTING: "writer",
@@ -44,7 +44,12 @@ class WorkflowEngine:
         self.current_state = new_state
         self.history.append({"state": new_state.value, "reason": reason})
 
+    def is_awaiting_human_review(self) -> bool:
+        return self.current_state == ContentWorkflowState.HUMAN_REVIEW
+
     def execute_agent_action(self, user_input: str) -> Optional[str]:
+        if self.is_awaiting_human_review():
+            return None  # Paused — resume via submit_human_review()
         agent_name = STATE_AGENT_MAP.get(self.current_state)
         if not agent_name or not self.openai_client:
             return None
@@ -52,6 +57,23 @@ class WorkflowEngine:
         output = agent.run(user_input, context=self.metadata)
         self.metadata[f"{self.current_state.value.lower()}_output"] = output
         return output
+
+    def submit_human_review(self, approved: bool, feedback: str = "") -> None:
+        if not self.is_awaiting_human_review():
+            raise ValueError(
+                f"Cannot submit human review: workflow is in '{self.current_state.value}', not 'HUMAN_REVIEW'."
+            )
+        self.metadata["human_review_feedback"] = feedback
+        if approved:
+            self.transition(
+                ContentWorkflowState.COMPLETED,
+                reason=f"Approved by human reviewer. {feedback}".strip(),
+            )
+        else:
+            self.transition(
+                ContentWorkflowState.REVISION,
+                reason=f"Returned for revision. {feedback}".strip(),
+            )
 
     def fail(self, reason: str = "Unspecified error") -> None:
         self.current_state = ContentWorkflowState.FAILED
@@ -66,6 +88,7 @@ class WorkflowEngine:
             "workflow_id": self.workflow_id,
             "current_state": self.current_state.value,
             "is_terminal": self.is_terminal(),
+            "awaiting_human_review": self.is_awaiting_human_review(),
             "history": self.history,
             "metadata": self.metadata,
             "agent_output": self.metadata.get(output_key),

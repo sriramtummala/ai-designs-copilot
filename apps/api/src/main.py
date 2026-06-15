@@ -140,9 +140,14 @@ class WorkflowStatusResponse(BaseModel):
     workflow_id: str
     current_state: str
     is_terminal: bool
+    awaiting_human_review: bool = False
     history: List[dict]
     metadata: dict
     agent_output: Optional[str] = None
+
+class HumanReviewRequest(BaseModel):
+    approved: bool = Field(..., description="True to approve and complete; False to return for revision.")
+    feedback: Optional[str] = Field("", description="Reviewer comments recorded in workflow metadata.")
 
 
 class GenerationRequest(BaseModel):
@@ -405,4 +410,16 @@ async def advance_workflow_state(workflow_id: str, request: WorkflowTransitionRe
     except Exception as e:
         engine.fail(reason=f"Agent error in {engine.current_state.value}: {e}")
 
+    return engine.get_status()
+
+
+@app.post("/workflows/{workflow_id}/human-review", response_model=WorkflowStatusResponse, summary="Submit human review decision")
+async def submit_human_review(workflow_id: str, request: HumanReviewRequest):
+    engine = workflow_store.get(workflow_id)
+    if not engine:
+        raise HTTPException(status_code=404, detail=f"Workflow '{workflow_id}' not found.")
+    try:
+        engine.submit_human_review(approved=request.approved, feedback=request.feedback or "")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return engine.get_status()
