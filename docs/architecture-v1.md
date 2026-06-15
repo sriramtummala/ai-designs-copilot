@@ -10,27 +10,44 @@ The AI DesignOps Copilot is structured as a monorepo, separating concerns into d
  
 ```mermaid
 graph TD
-    A["User (DesignOps/Marketing)"]
+    A["User - DesignOps Marketing"]
     B["Frontend Web App"]
     C["FastAPI Backend API"]
     D["Compliance Library"]
     E["AI Workflows Library"]
-    F["RAG Knowledge Base"]
-    G["LLM Service"]
-    H["Tokens Library"]
-    I["CMS Adapter Library"]
-    J["CMS Publishing System"]
+    F["RAG Retrieve API"]
+    G["Embedding Model"]
+    H["Vector Store - FAISS"]
+    I["Knowledge Base"]
+    J["Chunking and Metadata"]
+    K["LLM Service"]
+    L["Tokens Library"]
+    M["CMS Adapter Library"]
+    N["CMS Publishing System"]
 
     A -->|"Submits Request"| B
     B -->|"Structured Request"| C
+    
+    subgraph RAG_System [RAG System]
+        C -->|"Retrieves Context"| F
+        F -->|"Query Embeddings"| G
+        G -->|"Semantic Search"| H
+        H -->|"Retrieves Chunks"| I
+        I -->|"Processed by"| J
+        J --> H
+        F -->|"Returns Context"| C
+    end
+
     C -->|"Validates Request"| D
     C -->|"Orchestrates Workflow"| E
-    E -->|"Retrieves Knowledge"| F
-    E -->|"Generates Content Plan"| G
-    E -->|"Applies Design Tokens"| H
-    E -->|"Formats CMS Output"| I
-    I -->|"Publishes"| J
-    C -->|"Returns State"| B
+    E -->|"Generates Content Plan"| K
+    K -->|"Uses Context and Prompt"| C
+    C -->|"Applies Design Tokens"| L
+    C -->|"Formats CMS Output"| M
+    M -->|"Publishes"| N
+    C -->|"Returns Workflow State"| B
     B -->|"Displays Status"| A
+
+
 
 

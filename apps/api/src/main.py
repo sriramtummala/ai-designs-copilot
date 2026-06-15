@@ -14,11 +14,17 @@ from pydantic import BaseModel, Field
 
 # Allow importing from the monorepo root
 sys.path.append(".")
+sys.path.append("./libs/ai-workflows")
 load_dotenv(override=True)
 from libs.rag.create_embeddings import get_index, get_model, retrieve
 from libs.llm.prompts import PromptContext, build_system_prompt, build_user_prompt
+from engine import WorkflowEngine
+from states import ContentWorkflowState
 
 FEEDBACK_LOG_FILE = "./data/feedback.jsonl"
+
+# In-memory workflow store  {workflow_id: WorkflowEngine}
+workflow_store: dict[str, WorkflowEngine] = {}
 
 # --- Lifespan ---
 
@@ -117,6 +123,25 @@ class RetrievalResult(BaseModel):
 class RetrievalResponse(BaseModel):
     query: str
     results: List[RetrievalResult]
+
+class WorkflowCreateRequest(BaseModel):
+    page_type: PageType
+    audience: Audience
+    brand: Brand
+    channel: Channel
+    notes: Optional[str] = None
+
+class WorkflowTransitionRequest(BaseModel):
+    new_state: ContentWorkflowState
+    reason: Optional[str] = Field("", description="Reason for the state transition.")
+
+class WorkflowStatusResponse(BaseModel):
+    workflow_id: str
+    current_state: str
+    is_terminal: bool
+    history: List[dict]
+    metadata: dict
+
 
 class GenerationRequest(BaseModel):
     page_type: PageType
@@ -313,3 +338,33 @@ async def submit_feedback(request: FeedbackRequest):
     with open(FEEDBACK_LOG_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(feedback_entry) + "\n")
     return {"message": "Feedback submitted successfully", "feedback_id": request.generation_id}
+
+
+@app.post("/workflows", response_model=WorkflowStatusResponse, summary="Initiate a new workflow")
+async def create_workflow(request: WorkflowCreateRequest):
+    workflow_id = str(uuid.uuid4())
+    engine = WorkflowEngine(workflow_id=workflow_id, metadata=request.model_dump())
+    workflow_store[workflow_id] = engine
+    return engine.get_status()
+
+
+@app.get("/workflows/{workflow_id}", response_model=WorkflowStatusResponse, summary="Get workflow status")
+async def get_workflow_status(workflow_id: str):
+    engine = workflow_store.get(workflow_id)
+    if not engine:
+        raise HTTPException(status_code=404, detail=f"Workflow '{workflow_id}' not found.")
+    return engine.get_status()
+
+
+@app.post("/workflows/{workflow_id}/transition", response_model=WorkflowStatusResponse, summary="Advance workflow state")
+async def advance_workflow_state(workflow_id: str, request: WorkflowTransitionRequest):
+    engine = workflow_store.get(workflow_id)
+    if not engine:
+        raise HTTPException(status_code=404, detail=f"Workflow '{workflow_id}' not found.")
+    if engine.is_terminal():
+        raise HTTPException(status_code=400, detail=f"Workflow is already in terminal state: {engine.current_state.value}")
+    try:
+        engine.transition(request.new_state, reason=request.reason or "")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return engine.get_status()
