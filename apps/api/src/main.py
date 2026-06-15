@@ -142,6 +142,7 @@ class WorkflowStatusResponse(BaseModel):
     is_terminal: bool
     history: List[dict]
     metadata: dict
+    agent_output: Optional[str] = None
 
 
 class GenerationRequest(BaseModel):
@@ -365,7 +366,12 @@ async def submit_feedback(request: FeedbackRequest):
 @app.post("/workflows", response_model=WorkflowStatusResponse, summary="Initiate a new workflow")
 async def create_workflow(request: WorkflowCreateRequest):
     workflow_id = str(uuid.uuid4())
-    engine = WorkflowEngine(workflow_id=workflow_id, metadata=request.model_dump())
+    engine = WorkflowEngine(
+        workflow_id=workflow_id,
+        openai_client=openai_client,
+        llm_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+        metadata=request.model_dump(),
+    )
     workflow_store[workflow_id] = engine
     return engine.get_status()
 
@@ -389,4 +395,14 @@ async def advance_workflow_state(workflow_id: str, request: WorkflowTransitionRe
         engine.transition(request.new_state, reason=request.reason or "")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    user_input = (
+        engine.metadata.get("notes")
+        or f"Process {engine.metadata.get('page_type', 'content')} for {engine.metadata.get('brand', 'the brand')}"
+    )
+    try:
+        engine.execute_agent_action(user_input)
+    except Exception as e:
+        engine.fail(reason=f"Agent error in {engine.current_state.value}: {e}")
+
     return engine.get_status()
