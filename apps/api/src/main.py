@@ -24,8 +24,15 @@ from libs.llm.prompts import PromptContext, build_system_prompt, build_user_prom
 from libs.llm.tool_functions import TOOL_DEFINITIONS, TOOL_FUNCTIONS
 from engine import WorkflowEngine
 from states import ContentWorkflowState
+from libs.content_transformer.transformer import transform_content
+from libs.content_transformer.schema import BlogPostSchema, LandingPageSchema
 
 FEEDBACK_LOG_FILE = "./data/feedback.jsonl"
+
+CONTENT_SCHEMA_MAP = {
+    "blog_post": BlogPostSchema,
+    "landing_page": LandingPageSchema,
+}
 
 # In-memory workflow store  {workflow_id: WorkflowEngine}
 workflow_store: dict[str, WorkflowEngine] = {}
@@ -399,6 +406,16 @@ class FeedbackRequest(BaseModel):
     )
 
 
+class TransformRequest(BaseModel):
+    content_type: PageType = Field(..., description="Target schema to validate against.")
+    raw_llm_output: str = Field(..., description="Raw JSON string produced by the LLM.")
+
+
+class TransformResponse(BaseModel):
+    content_type: str
+    structured_content: dict
+
+
 @app.post("/feedback", summary="Submit feedback on generated content")
 async def submit_feedback(request: FeedbackRequest):
     feedback_entry = {
@@ -410,6 +427,29 @@ async def submit_feedback(request: FeedbackRequest):
     with open(FEEDBACK_LOG_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(feedback_entry) + "\n")
     return {"message": "Feedback submitted successfully", "feedback_id": request.generation_id}
+
+
+@app.post(
+    "/transform",
+    response_model=TransformResponse,
+    summary="Transform LLM JSON output into a structured schema",
+)
+async def transform_llm_output(request: TransformRequest):
+    schema_cls = CONTENT_SCHEMA_MAP.get(request.content_type.value)
+    if not schema_cls:
+        supported = list(CONTENT_SCHEMA_MAP.keys())
+        raise HTTPException(
+            status_code=422,
+            detail=f"No schema registered for '{request.content_type.value}'. Supported: {supported}",
+        )
+    try:
+        result = transform_content(request.raw_llm_output, schema_cls)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return TransformResponse(
+        content_type=request.content_type.value,
+        structured_content=result.model_dump(),
+    )
 
 
 @app.post("/workflows", response_model=WorkflowStatusResponse, summary="Initiate a new workflow")
