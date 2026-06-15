@@ -53,8 +53,19 @@ class WorkflowEngine:
         agent_name = STATE_AGENT_MAP.get(self.current_state)
         if not agent_name or not self.openai_client:
             return None
-        agent = create_agent(agent_name, self.openai_client, self.llm_model)
-        output = agent.run(user_input, context=self.metadata)
+
+        failed_at = self.current_state.value
+        try:
+            agent = create_agent(agent_name, self.openai_client, self.llm_model)
+            output = agent.run(user_input, context=self.metadata)
+        except Exception as e:
+            self.fail(reason=f"Agent '{agent_name}' raised an exception in state '{failed_at}': {e}")
+            return None
+
+        if output is None:
+            self.fail(reason=f"Agent '{agent_name}' returned no output in state '{failed_at}' after exhausting retries.")
+            return None
+
         self.metadata[f"{self.current_state.value.lower()}_output"] = output
         return output
 
@@ -76,6 +87,7 @@ class WorkflowEngine:
             )
 
     def fail(self, reason: str = "Unspecified error") -> None:
+        self.metadata["error"] = {"failed_at_state": self.current_state.value, "reason": reason}
         self.current_state = ContentWorkflowState.FAILED
         self.history.append({"state": ContentWorkflowState.FAILED.value, "reason": reason})
 
@@ -92,4 +104,5 @@ class WorkflowEngine:
             "history": self.history,
             "metadata": self.metadata,
             "agent_output": self.metadata.get(output_key),
+            "error": self.metadata.get("error"),
         }

@@ -144,6 +144,7 @@ class WorkflowStatusResponse(BaseModel):
     history: List[dict]
     metadata: dict
     agent_output: Optional[str] = None
+    error: Optional[dict] = None
 
 class HumanReviewRequest(BaseModel):
     approved: bool = Field(..., description="True to approve and complete; False to return for revision.")
@@ -405,11 +406,7 @@ async def advance_workflow_state(workflow_id: str, request: WorkflowTransitionRe
         engine.metadata.get("notes")
         or f"Process {engine.metadata.get('page_type', 'content')} for {engine.metadata.get('brand', 'the brand')}"
     )
-    try:
-        engine.execute_agent_action(user_input)
-    except Exception as e:
-        engine.fail(reason=f"Agent error in {engine.current_state.value}: {e}")
-
+    engine.execute_agent_action(user_input)
     return engine.get_status()
 
 

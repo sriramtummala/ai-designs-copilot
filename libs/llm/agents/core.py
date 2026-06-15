@@ -1,6 +1,15 @@
 from typing import List, Dict, Any, Optional
-from openai import OpenAI
 import json
+import openai
+from openai import OpenAI
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+
+_RETRYABLE = (
+    openai.RateLimitError,
+    openai.APIConnectionError,
+    openai.APITimeoutError,
+    openai.InternalServerError,
+)
 
 from libs.llm.tools import AVAILABLE_TOOLS
 from libs.llm.tool_functions import TOOL_FUNCTIONS
@@ -26,10 +35,23 @@ class BaseAgent:
         )
         if tools:
             kwargs.update(tools=tools, tool_choice="auto")
-        try:
+
+        @retry(
+            retry=retry_if_exception_type(_RETRYABLE),
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=1, max=10),
+            reraise=True,
+        )
+        def attempt():
             return self.openai_client.chat.completions.create(**kwargs).choices[0].message
+
+        try:
+            return attempt()
+        except _RETRYABLE as e:
+            print(f"Agent '{self.name}' failed after retries: {e}")
+            return None
         except Exception as e:
-            print(f"Agent '{self.name}' LLM error: {e}")
+            print(f"Agent '{self.name}' non-retryable error: {e}")
             return None
 
     def run(self, user_input: str, context: Optional[Dict[str, Any]] = None) -> str:
