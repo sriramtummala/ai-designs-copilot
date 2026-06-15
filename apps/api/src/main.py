@@ -18,6 +18,7 @@ sys.path.append("./libs/ai-workflows")
 load_dotenv(override=True)
 from libs.rag.create_embeddings import get_index, get_model, retrieve
 from libs.llm.prompts import PromptContext, build_system_prompt, build_user_prompt
+from libs.llm.tool_functions import TOOL_DEFINITIONS, TOOL_FUNCTIONS
 from engine import WorkflowEngine
 from states import ContentWorkflowState
 
@@ -291,21 +292,42 @@ async def generate_content(request: GenerationRequest):
         notes=request.notes or "",
     )
 
-    # 4. Call the LLM
+    # 4. Multi-turn LLM call with tool support
+    messages = [
+        {"role": "system", "content": build_system_prompt(ctx)},
+        {"role": "user", "content": build_user_prompt(ctx)},
+    ]
+    llm_kwargs = dict(
+        model=request.llm_model,
+        temperature=request.temperature,
+        top_p=request.top_p,
+        frequency_penalty=request.frequency_penalty,
+        presence_penalty=request.presence_penalty,
+        max_tokens=request.max_tokens,
+    )
     try:
-        chat_completion = openai_client.chat.completions.create(
-            model=request.llm_model,
-            messages=[
-                {"role": "system", "content": build_system_prompt(ctx)},
-                {"role": "user", "content": build_user_prompt(ctx)},
-            ],
-            temperature=request.temperature,
-            top_p=request.top_p,
-            frequency_penalty=request.frequency_penalty,
-            presence_penalty=request.presence_penalty,
-            max_tokens=request.max_tokens,
+        response = openai_client.chat.completions.create(
+            **llm_kwargs, messages=messages, tools=TOOL_DEFINITIONS, tool_choice="auto"
         )
-        generated_content = chat_completion.choices[0].message.content
+
+        # If the model wants to call a tool, execute it and send results back
+        while response.choices[0].finish_reason == "tool_calls":
+            assistant_msg = response.choices[0].message
+            messages.append(assistant_msg)
+
+            for tool_call in assistant_msg.tool_calls:
+                func = TOOL_FUNCTIONS.get(tool_call.function.name)
+                args = json.loads(tool_call.function.arguments)
+                result = func(**args) if func else {"error": f"Unknown tool: {tool_call.function.name}"}
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps(result),
+                })
+
+            response = openai_client.chat.completions.create(**llm_kwargs, messages=messages)
+
+        generated_content = response.choices[0].message.content
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"LLM generation error: {e}")
 
