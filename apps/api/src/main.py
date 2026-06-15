@@ -1,11 +1,14 @@
 import datetime
 import json
+import logging
 import os
 import sys
 import uuid
 from contextlib import asynccontextmanager
 from enum import Enum
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -35,19 +38,19 @@ openai_client: OpenAI | None = None
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     global openai_client
-    print("Starting up: Loading RAG components...")
+    logger.info("Starting up: loading RAG components...")
     get_model()
     get_index()
-    print("RAG components loaded successfully.")
+    logger.info("RAG components loaded successfully.")
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        print("Warning: OPENAI_API_KEY not set.")
+        logger.warning("OPENAI_API_KEY not set — /generate endpoint will be unavailable.")
     else:
         openai_client = OpenAI(api_key=api_key)
-        print("OpenAI client initialized.")
+        logger.info("OpenAI client initialized.")
     os.makedirs(os.path.dirname(FEEDBACK_LOG_FILE), exist_ok=True)
     yield
-    print("Shutting down...")
+    logger.info("Shutting down.")
     openai_client = None
 
 
@@ -61,11 +64,13 @@ app = FastAPI(
 
 # --- Pydantic Models ---
 
+
 class PageType(str, Enum):
     landing_page = "landing_page"
     product_page = "product_page"
     blog_post = "blog_post"
     help_article = "help_article"
+
 
 class Audience(str, Enum):
     developers = "developers"
@@ -73,14 +78,17 @@ class Audience(str, Enum):
     marketers = "marketers"
     end_users = "end_users"
 
+
 class Brand(str, Enum):
     brand_a = "brand_a"
     brand_b = "brand_b"
+
 
 class Channel(str, Enum):
     web = "web"
     mobile = "mobile"
     email = "email"
+
 
 class PageRequest(BaseModel):
     page_type: PageType = Field(..., description="Type of page to generate.")
@@ -89,17 +97,20 @@ class PageRequest(BaseModel):
     channel: Channel = Field(..., description="Delivery channel for the page.")
     notes: Optional[str] = Field(None, description="Additional notes or requirements.")
 
+
 class ComplianceFinding(BaseModel):
     rule_id: str
     description: str
     severity: str
     suggestion: Optional[str] = None
 
+
 class PagePlan(BaseModel):
     title: str
     sections: List[str]
     keywords: List[str]
     estimated_word_count: int
+
 
 class WorkflowState(BaseModel):
     request_id: str
@@ -109,10 +120,14 @@ class WorkflowState(BaseModel):
     page_plan: Optional[PagePlan] = None
     last_updated: str
 
+
 class RetrievalRequest(BaseModel):
     query: str = Field(..., description="Natural language query to search the knowledge base.")
     k: int = Field(5, ge=1, le=20, description="Number of results to return.")
-    filters: Optional[dict] = Field(None, description="Optional metadata filters (e.g. source_type).")
+    filters: Optional[dict] = Field(
+        None, description="Optional metadata filters (e.g. source_type)."
+    )
+
 
 class RetrievalResult(BaseModel):
     score: float
@@ -121,9 +136,11 @@ class RetrievalResult(BaseModel):
     source_type: Optional[str] = None
     metadata: dict
 
+
 class RetrievalResponse(BaseModel):
     query: str
     results: List[RetrievalResult]
+
 
 class WorkflowCreateRequest(BaseModel):
     page_type: PageType
@@ -132,9 +149,11 @@ class WorkflowCreateRequest(BaseModel):
     channel: Channel
     notes: Optional[str] = None
 
+
 class WorkflowTransitionRequest(BaseModel):
     new_state: ContentWorkflowState
     reason: Optional[str] = Field("", description="Reason for the state transition.")
+
 
 class WorkflowStatusResponse(BaseModel):
     workflow_id: str
@@ -146,9 +165,14 @@ class WorkflowStatusResponse(BaseModel):
     agent_output: Optional[str] = None
     error: Optional[dict] = None
 
+
 class HumanReviewRequest(BaseModel):
-    approved: bool = Field(..., description="True to approve and complete; False to return for revision.")
-    feedback: Optional[str] = Field("", description="Reviewer comments recorded in workflow metadata.")
+    approved: bool = Field(
+        ..., description="True to approve and complete; False to return for revision."
+    )
+    feedback: Optional[str] = Field(
+        "", description="Reviewer comments recorded in workflow metadata."
+    )
 
 
 class GenerationRequest(BaseModel):
@@ -158,11 +182,18 @@ class GenerationRequest(BaseModel):
     channel: Channel
     notes: Optional[str] = None
     llm_model: str = Field(default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
-    temperature: float = Field(0.7, ge=0.0, le=2.0, description="Controls randomness. Lower = more deterministic.")
+    temperature: float = Field(
+        0.7, ge=0.0, le=2.0, description="Controls randomness. Lower = more deterministic."
+    )
     top_p: float = Field(1.0, ge=0.0, le=1.0, description="Nucleus sampling probability mass.")
-    frequency_penalty: float = Field(0.0, ge=-2.0, le=2.0, description="Penalizes tokens by existing frequency.")
-    presence_penalty: float = Field(0.0, ge=-2.0, le=2.0, description="Penalizes tokens that have already appeared.")
+    frequency_penalty: float = Field(
+        0.0, ge=-2.0, le=2.0, description="Penalizes tokens by existing frequency."
+    )
+    presence_penalty: float = Field(
+        0.0, ge=-2.0, le=2.0, description="Penalizes tokens that have already appeared."
+    )
     max_tokens: int = Field(1000, ge=1, description="Maximum tokens to generate.")
+
 
 class GenerationResponse(BaseModel):
     generated_content: str
@@ -176,6 +207,7 @@ class GenerationResponse(BaseModel):
 
 
 # --- Endpoints ---
+
 
 @app.get("/health")
 async def health_check():
@@ -196,10 +228,7 @@ async def retrieve_knowledge(request: RetrievalRequest):
 
     # Apply optional metadata filters post-retrieval
     if request.filters:
-        raw = [
-            r for r in raw
-            if all(r["metadata"].get(k) == v for k, v in request.filters.items())
-        ]
+        raw = [r for r in raw if all(r["metadata"].get(k) == v for k, v in request.filters.items())]
 
     results = [
         RetrievalResult(
@@ -218,19 +247,23 @@ async def retrieve_knowledge(request: RetrievalRequest):
 async def validate_page_request(request: PageRequest):
     findings = []
     if request.notes and "urgent" in request.notes.lower():
-        findings.append(ComplianceFinding(
-            rule_id="URGENT_FLAG",
-            description="'Urgent' keyword detected in notes. Requires special approval.",
-            severity="high",
-            suggestion="Route to manual review process.",
-        ))
+        findings.append(
+            ComplianceFinding(
+                rule_id="URGENT_FLAG",
+                description="'Urgent' keyword detected in notes. Requires special approval.",
+                severity="high",
+                suggestion="Route to manual review process.",
+            )
+        )
     if request.page_type == PageType.blog_post and request.audience == Audience.developers:
-        findings.append(ComplianceFinding(
-            rule_id="BLOG_DEV_AUDIENCE",
-            description="Blog post for developers might require technical review.",
-            severity="medium",
-            suggestion="Ensure technical accuracy and appropriate tone.",
-        ))
+        findings.append(
+            ComplianceFinding(
+                rule_id="BLOG_DEV_AUDIENCE",
+                description="Blog post for developers might require technical review.",
+                severity="medium",
+                suggestion="Ensure technical accuracy and appropriate tone.",
+            )
+        )
     return findings
 
 
@@ -261,7 +294,9 @@ async def mock_workflow_run(request: PageRequest):
 @app.post("/generate", response_model=GenerationResponse, summary="Generate content via LLM")
 async def generate_content(request: GenerationRequest):
     if not openai_client:
-        raise HTTPException(status_code=503, detail="OpenAI client not initialized. Check OPENAI_API_KEY.")
+        raise HTTPException(
+            status_code=503, detail="OpenAI client not initialized. Check OPENAI_API_KEY."
+        )
 
     # 1. Retrieve relevant context from the knowledge base
     retrieval_query = (
@@ -279,7 +314,9 @@ async def generate_content(request: GenerationRequest):
         "channel": request.channel.value,
         "page_type": request.page_type.value,
     }
-    filtered = [r for r in raw_results if all(r["metadata"].get(k) == v for k, v in filters.items())]
+    filtered = [
+        r for r in raw_results if all(r["metadata"].get(k) == v for k, v in filters.items())
+    ]
     results = filtered if filtered else raw_results
 
     # 2. Format context string for the prompt
@@ -325,12 +362,16 @@ async def generate_content(request: GenerationRequest):
             for tool_call in assistant_msg.tool_calls:
                 func = TOOL_FUNCTIONS.get(tool_call.function.name)
                 args = json.loads(tool_call.function.arguments)
-                result = func(**args) if func else {"error": f"Unknown tool: {tool_call.function.name}"}
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": json.dumps(result),
-                })
+                result = (
+                    func(**args) if func else {"error": f"Unknown tool: {tool_call.function.name}"}
+                )
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(result),
+                    }
+                )
 
             response = openai_client.chat.completions.create(**llm_kwargs, messages=messages)
 
@@ -353,7 +394,9 @@ async def generate_content(request: GenerationRequest):
 class FeedbackRequest(BaseModel):
     generation_id: str = Field(..., description="Unique ID of the generated content.")
     user_rating: int = Field(..., ge=1, le=5, description="User rating (1-5 stars).")
-    comments: Optional[str] = Field(None, description="Optional comments on the generation quality.")
+    comments: Optional[str] = Field(
+        None, description="Optional comments on the generation quality."
+    )
 
 
 @app.post("/feedback", summary="Submit feedback on generated content")
@@ -382,7 +425,9 @@ async def create_workflow(request: WorkflowCreateRequest):
     return engine.get_status()
 
 
-@app.get("/workflows/{workflow_id}", response_model=WorkflowStatusResponse, summary="Get workflow status")
+@app.get(
+    "/workflows/{workflow_id}", response_model=WorkflowStatusResponse, summary="Get workflow status"
+)
 async def get_workflow_status(workflow_id: str):
     engine = workflow_store.get(workflow_id)
     if not engine:
@@ -390,13 +435,20 @@ async def get_workflow_status(workflow_id: str):
     return engine.get_status()
 
 
-@app.post("/workflows/{workflow_id}/transition", response_model=WorkflowStatusResponse, summary="Advance workflow state")
+@app.post(
+    "/workflows/{workflow_id}/transition",
+    response_model=WorkflowStatusResponse,
+    summary="Advance workflow state",
+)
 async def advance_workflow_state(workflow_id: str, request: WorkflowTransitionRequest):
     engine = workflow_store.get(workflow_id)
     if not engine:
         raise HTTPException(status_code=404, detail=f"Workflow '{workflow_id}' not found.")
     if engine.is_terminal():
-        raise HTTPException(status_code=400, detail=f"Workflow is already in terminal state: {engine.current_state.value}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Workflow is already in terminal state: {engine.current_state.value}",
+        )
     try:
         engine.transition(request.new_state, reason=request.reason or "")
     except ValueError as e:
@@ -410,7 +462,11 @@ async def advance_workflow_state(workflow_id: str, request: WorkflowTransitionRe
     return engine.get_status()
 
 
-@app.post("/workflows/{workflow_id}/human-review", response_model=WorkflowStatusResponse, summary="Submit human review decision")
+@app.post(
+    "/workflows/{workflow_id}/human-review",
+    response_model=WorkflowStatusResponse,
+    summary="Submit human review decision",
+)
 async def submit_human_review(workflow_id: str, request: HumanReviewRequest):
     engine = workflow_store.get(workflow_id)
     if not engine:

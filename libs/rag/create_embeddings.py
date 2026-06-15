@@ -50,15 +50,18 @@ def retrieve(query: str, k: int = 5) -> list[dict]:
         if idx == -1:
             continue
         record = metadata[idx]
-        results.append({
-            "score": float(distances[0][i]),
-            "content": record.get("content", ""),
-            "metadata": {key: val for key, val in record.items() if key != "content"},
-        })
+        results.append(
+            {
+                "score": float(distances[0][i]),
+                "content": record.get("content", ""),
+                "metadata": {key: val for key, val in record.items() if key != "content"},
+            }
+        )
     return results
 
 
 # --- Build-time helpers (run directly to generate the index) ---
+
 
 def load_chunks(file_path: str = CHUNKS_FILE) -> list[dict]:
     chunks = []

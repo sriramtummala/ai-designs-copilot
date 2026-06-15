@@ -16,6 +16,13 @@ STATE_AGENT_MAP: Dict[ContentWorkflowState, str] = {
 
 
 class WorkflowEngine:
+    """Manages the lifecycle of a content workflow, including state transitions and agent execution.
+
+    Validates transitions against STATE_TRANSITIONS, automatically runs the mapped LLM agent
+    for each active state, and transitions to FAILED with structured error details on agent failure.
+    HUMAN_REVIEW is a pause point — no agent runs until submit_human_review() is called.
+    """
+
     def __init__(
         self,
         workflow_id: str,
@@ -48,6 +55,11 @@ class WorkflowEngine:
         return self.current_state == ContentWorkflowState.HUMAN_REVIEW
 
     def execute_agent_action(self, user_input: str) -> Optional[str]:
+        """Run the agent mapped to the current state and store its output in metadata.
+
+        Automatically calls fail() if the agent raises or returns None.
+        Returns the agent's text output, or None if the state has no mapped agent or the agent fails.
+        """
         if self.is_awaiting_human_review():
             return None  # Paused — resume via submit_human_review()
         agent_name = STATE_AGENT_MAP.get(self.current_state)
@@ -59,17 +71,26 @@ class WorkflowEngine:
             agent = create_agent(agent_name, self.openai_client, self.llm_model)
             output = agent.run(user_input, context=self.metadata)
         except Exception as e:
-            self.fail(reason=f"Agent '{agent_name}' raised an exception in state '{failed_at}': {e}")
+            self.fail(
+                reason=f"Agent '{agent_name}' raised an exception in state '{failed_at}': {e}"
+            )
             return None
 
         if output is None:
-            self.fail(reason=f"Agent '{agent_name}' returned no output in state '{failed_at}' after exhausting retries.")
+            self.fail(
+                reason=f"Agent '{agent_name}' returned no output in state '{failed_at}' after exhausting retries."
+            )
             return None
 
         self.metadata[f"{self.current_state.value.lower()}_output"] = output
         return output
 
     def submit_human_review(self, approved: bool, feedback: str = "") -> None:
+        """Record a human reviewer's decision and transition accordingly.
+
+        approved=True  → COMPLETED; approved=False → REVISION.
+        Raises ValueError if the workflow is not in HUMAN_REVIEW state.
+        """
         if not self.is_awaiting_human_review():
             raise ValueError(
                 f"Cannot submit human review: workflow is in '{self.current_state.value}', not 'HUMAN_REVIEW'."

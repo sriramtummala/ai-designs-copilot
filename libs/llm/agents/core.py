@@ -1,8 +1,11 @@
+import logging
 from typing import List, Dict, Any, Optional
 import json
 import openai
 from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+
+logger = logging.getLogger(__name__)
 
 _RETRYABLE = (
     openai.RateLimitError,
@@ -17,16 +20,22 @@ from libs.llm.agents.roles import AGENT_PROMPTS
 
 
 class BaseAgent:
+    """Foundation for all LLM-powered agents. Manages conversation history and tool-call loops."""
+
     def __init__(self, name: str, system_prompt: str, openai_client: OpenAI, llm_model: str):
         self.name = name
         self.system_prompt = system_prompt
         self.openai_client = openai_client
         self.llm_model = llm_model
-        self.conversation_history: List[Any] = [
-            {"role": "system", "content": self.system_prompt}
-        ]
+        self.conversation_history: List[Any] = [{"role": "system", "content": self.system_prompt}]
 
     def _call_llm(self, messages: List[Any], tools: Optional[List[Dict[str, Any]]] = None):
+        """Call the OpenAI API with tenacity retry on transient errors.
+
+        Retries up to 3 times with exponential backoff for RateLimit, Connection,
+        Timeout, and InternalServer errors. Non-retryable errors fail immediately.
+        Returns the assistant message object, or None on exhausted retries or fatal error.
+        """
         kwargs: Dict[str, Any] = dict(
             model=self.llm_model,
             messages=messages,
@@ -48,13 +57,17 @@ class BaseAgent:
         try:
             return attempt()
         except _RETRYABLE as e:
-            print(f"Agent '{self.name}' failed after retries: {e}")
+            logger.error("Agent '%s' failed after retries: %s", self.name, e)
             return None
         except Exception as e:
-            print(f"Agent '{self.name}' non-retryable error: {e}")
+            logger.error("Agent '%s' non-retryable error: %s", self.name, e)
             return None
 
     def run(self, user_input: str, context: Optional[Dict[str, Any]] = None) -> str:
+        """Run the agent loop, executing tool calls inline until a final text response is produced.
+
+        Returns the assistant's final text content, or an empty string if the LLM fails.
+        """
         self.conversation_history.append({"role": "user", "content": user_input})
         if context:
             self.conversation_history.append(
@@ -74,12 +87,14 @@ class BaseAgent:
                 func = TOOL_FUNCTIONS.get(tc.function.name)
                 args = json.loads(tc.function.arguments)
                 result = func(**args) if func else {"error": f"Unknown tool: {tc.function.name}"}
-                self.conversation_history.append({
-                    "role": "tool",
-                    "tool_call_id": tc.id,
-                    "name": tc.function.name,
-                    "content": json.dumps(result),
-                })
+                self.conversation_history.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "name": tc.function.name,
+                        "content": json.dumps(result),
+                    }
+                )
 
 
 class PlannerAgent(BaseAgent):
