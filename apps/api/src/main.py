@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 # Allow importing from the monorepo root
 sys.path.append(".")
 sys.path.append("./libs/ai-workflows")
+sys.path.append("./libs/cms-adapter")
 load_dotenv(override=True)
 from libs.rag.create_embeddings import get_index, get_model, retrieve
 from libs.llm.prompts import PromptContext, build_system_prompt, build_user_prompt
@@ -26,6 +27,8 @@ from engine import WorkflowEngine
 from states import ContentWorkflowState
 from libs.content_transformer.transformer import transform_content
 from libs.content_transformer.schema import BlogPostSchema, LandingPageSchema
+from mock_adapter import MockCMSAdapter
+from interface import PublishResult
 
 FEEDBACK_LOG_FILE = "./data/feedback.jsonl"
 
@@ -40,11 +43,12 @@ workflow_store: dict[str, WorkflowEngine] = {}
 # --- Lifespan ---
 
 openai_client: OpenAI | None = None
+cms_adapter: MockCMSAdapter | None = None
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    global openai_client
+    global openai_client, cms_adapter
     logger.info("Starting up: loading RAG components...")
     get_model()
     get_index()
@@ -55,10 +59,13 @@ async def lifespan(_app: FastAPI):
     else:
         openai_client = OpenAI(api_key=api_key)
         logger.info("OpenAI client initialized.")
+    cms_adapter = MockCMSAdapter()
+    logger.info("CMS adapter initialized.")
     os.makedirs(os.path.dirname(FEEDBACK_LOG_FILE), exist_ok=True)
     yield
     logger.info("Shutting down.")
     openai_client = None
+    cms_adapter = None
 
 
 app = FastAPI(
@@ -416,6 +423,19 @@ class TransformResponse(BaseModel):
     structured_content: dict
 
 
+class PublishRequest(BaseModel):
+    content_type: PageType = Field(..., description="Target schema and CMS content type.")
+    raw_llm_output: str = Field(..., description="Raw JSON string from the LLM to transform and publish.")
+
+
+class PublishResponse(BaseModel):
+    content_id: str
+    status: str
+    url: Optional[str] = None
+    content_type: str
+    structured_content: dict
+
+
 @app.post("/feedback", summary="Submit feedback on generated content")
 async def submit_feedback(request: FeedbackRequest):
     feedback_entry = {
@@ -449,6 +469,34 @@ async def transform_llm_output(request: TransformRequest):
     return TransformResponse(
         content_type=request.content_type.value,
         structured_content=result.model_dump(),
+    )
+
+
+@app.post(
+    "/publish",
+    response_model=PublishResponse,
+    summary="Transform LLM output and publish to the CMS",
+)
+async def publish_content(request: PublishRequest):
+    if not cms_adapter:
+        raise HTTPException(status_code=503, detail="CMS adapter not initialized.")
+    schema_cls = CONTENT_SCHEMA_MAP.get(request.content_type.value)
+    if not schema_cls:
+        raise HTTPException(
+            status_code=422,
+            detail=f"No schema registered for '{request.content_type.value}'. Supported: {list(CONTENT_SCHEMA_MAP)}",
+        )
+    try:
+        structured = transform_content(request.raw_llm_output, schema_cls)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    result = await cms_adapter.publish(structured)
+    return PublishResponse(
+        content_id=result.content_id,
+        status=result.status,
+        url=result.url,
+        content_type=request.content_type.value,
+        structured_content=structured.model_dump(),
     )
 
 
