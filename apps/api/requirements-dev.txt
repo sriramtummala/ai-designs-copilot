@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# Formatting + linting
+black==26.5.1
+flake8==7.3.0
