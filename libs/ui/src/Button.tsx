@@ -5,16 +5,18 @@ export interface ButtonProps {
   onClick?: () => void;
   variant?: 'primary' | 'secondary';
   type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
 }
- 
-const Button: React.FC<ButtonProps> = ({ children, onClick, variant = 'primary', type = 'button' }) => {
+
+const Button: React.FC<ButtonProps> = ({ children, onClick, variant = 'primary', type = 'button', disabled = false }) => {
   const buttonStyle: React.CSSProperties = {
     padding: `var(--spacing-md) var(--spacing-lg)`,
     borderRadius: `var(--radius-sm)`,
     border: 'none',
-    cursor: 'pointer',
+    cursor: disabled ? 'not-allowed' : 'pointer',
     fontWeight: `var(--font-weight-bold)`,
     fontSize: `var(--font-size-md)`,
+    opacity: disabled ? 0.5 : 1,
   };
  
   if (variant === 'primary') {
@@ -27,7 +29,7 @@ const Button: React.FC<ButtonProps> = ({ children, onClick, variant = 'primary',
   }
  
   return (
-    <button style={buttonStyle} onClick={onClick} type={type}>
+    <button style={buttonStyle} onClick={onClick} type={type} disabled={disabled}>
       {children}
     </button>
   );
