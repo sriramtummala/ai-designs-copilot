@@ -12,7 +12,7 @@ from typing import List, Optional
 logger = logging.getLogger(__name__)
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
@@ -29,6 +29,7 @@ from states import ContentWorkflowState
 from libs.content_transformer.transformer import transform_content
 from libs.content_transformer.schema import BlogPostSchema, LandingPageSchema
 from libs.compliance.compliance_service import ComplianceService
+from libs.analytics.analytics_service import ContentAnalyticsService
 from mock_adapter import MockCMSAdapter
 from contentful_adapter import ContentfulAdapter  # type: ignore[import]
 from interface import CMSAdapter, PublishResult
@@ -48,11 +49,12 @@ workflow_store: dict[str, WorkflowEngine] = {}
 openai_client: OpenAI | None = None
 cms_adapter: CMSAdapter | None = None
 compliance_service: ComplianceService | None = None
+analytics_service: ContentAnalyticsService | None = None
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    global openai_client, cms_adapter, compliance_service
+    global openai_client, cms_adapter, compliance_service, analytics_service
     logger.info("Starting up: loading RAG components...")
     get_model()
     get_index()
@@ -75,12 +77,15 @@ async def lifespan(_app: FastAPI):
         logger.info("CMS adapter: MockCMSAdapter (CONTENTFUL env vars not set)")
     compliance_service = ComplianceService()
     logger.info("Compliance service initialized.")
+    analytics_service = ContentAnalyticsService()
+    logger.info("Analytics service initialized.")
     os.makedirs(os.path.dirname(FEEDBACK_LOG_FILE), exist_ok=True)
     yield
     logger.info("Shutting down.")
     openai_client = None
     cms_adapter = None
     compliance_service = None
+    analytics_service = None
 
 
 app = FastAPI(
@@ -520,6 +525,17 @@ async def publish_content(request: PublishRequest):
         )
 
     result = await cms_adapter.publish(structured)
+
+    analytics_service.record_performance(
+        content_id=result.content_id,
+        content_type=request.content_type.value,
+        metrics={
+            "brand": request.brand.value,
+            "publish_status": result.status,
+            "compliance_rules_checked": len(compliance.details),
+        },
+    )
+
     return PublishResponse(
         content_id=result.content_id,
         status=result.status,
@@ -529,6 +545,38 @@ async def publish_content(request: PublishRequest):
         compliance_findings=[f.model_dump() for f in compliance.details],
         structured_content=structured.model_dump(),
     )
+
+
+class AnalyticsFeedbackRequest(BaseModel):
+    content_id: str = Field(..., description="ID of the published content item.")
+    feedback_score: float = Field(..., ge=0.0, le=1.0, description="Score between 0.0 and 1.0.")
+    feedback_text: Optional[str] = None
+
+
+@app.get(
+    "/analytics",
+    summary="Retrieve content performance records",
+)
+async def get_analytics(
+    content_id: Optional[str] = Query(None, description="Filter by content ID."),
+    content_type: Optional[str] = Query(None, description="Filter by content type."),
+):
+    return analytics_service.get_performance_data(
+        content_id=content_id, content_type=content_type
+    )
+
+
+@app.post(
+    "/analytics/feedback",
+    summary="Submit performance feedback for a published content item",
+)
+async def submit_analytics_feedback(request: AnalyticsFeedbackRequest):
+    result = analytics_service.provide_feedback_to_llm(
+        content_id=request.content_id,
+        feedback_score=request.feedback_score,
+        feedback_text=request.feedback_text,
+    )
+    return result
 
 
 @app.post("/workflows", response_model=WorkflowStatusResponse, summary="Initiate a new workflow")
