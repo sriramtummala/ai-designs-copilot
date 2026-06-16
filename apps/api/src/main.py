@@ -21,7 +21,7 @@ sys.path.append(".")
 sys.path.append("./libs/ai-workflows")
 sys.path.append("./libs/cms-adapter")
 load_dotenv(override=True)
-from libs.rag.create_embeddings import get_index, get_model, retrieve
+from libs.rag.create_embeddings import _query_cache, get_index, get_model, retrieve
 from libs.llm.prompts import PromptContext, build_system_prompt, build_user_prompt
 from libs.llm.tool_functions import TOOL_DEFINITIONS, TOOL_FUNCTIONS
 from engine import WorkflowEngine
@@ -249,7 +249,26 @@ async def health_check():
         "status": "ok",
         "rag_loaded": True,
         "openai_client_ready": openai_client is not None,
+        "rag_query_cache": {
+            "size": _query_cache.currsize,
+            "maxsize": _query_cache.maxsize,
+        },
     }
+
+
+@app.get("/rag/cache/stats", summary="RAG query cache statistics")
+async def rag_cache_stats():
+    return {
+        "size": _query_cache.currsize,
+        "maxsize": _query_cache.maxsize,
+    }
+
+
+@app.delete("/rag/cache", summary="Clear the RAG query cache")
+async def clear_rag_cache():
+    cleared = _query_cache.currsize
+    _query_cache.clear()
+    return {"cleared": cleared, "message": f"Removed {cleared} cached query result(s)."}
 
 
 @app.post("/rag/retrieve", response_model=RetrievalResponse, summary="RAG Retrieval")

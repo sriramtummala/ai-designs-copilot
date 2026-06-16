@@ -1,19 +1,28 @@
 import json
 import os
+import threading
 
 import faiss
 import numpy as np
+from cachetools import LRUCache, cached
+from cachetools.keys import hashkey
 from sentence_transformers import SentenceTransformer
 
 CHUNKS_FILE = "./libs/rag/chunks.jsonl"
 FAISS_INDEX_PATH = "./libs/rag/faiss_index.bin"
 METADATA_PATH = "./libs/rag/faiss_metadata.json"
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+QUERY_CACHE_MAXSIZE = int(os.getenv("RAG_QUERY_CACHE_SIZE", "256"))
 
 # Module-level cache so FastAPI loads these once at startup
 _model: SentenceTransformer | None = None
 _faiss_index: faiss.Index | None = None
 _metadata: list | None = None
+
+# LRU cache for retrieve() — FAISS index is immutable at runtime so
+# (query, k) always maps to the same result for the lifetime of the process.
+_query_cache: LRUCache = LRUCache(maxsize=QUERY_CACHE_MAXSIZE)
+_cache_lock = threading.RLock()
 
 
 def get_model() -> SentenceTransformer:
@@ -37,8 +46,13 @@ def get_index(
     return _faiss_index, _metadata
 
 
+@cached(cache=_query_cache, key=hashkey, lock=_cache_lock)
 def retrieve(query: str, k: int = 5) -> list[dict]:
-    """Main entry point for FastAPI — returns top-k chunks for a query."""
+    """Main entry point for FastAPI — returns top-k chunks for a query.
+
+    LRU-cached by (query, k). Safe to cache permanently because the FAISS
+    index is immutable for the lifetime of the process.
+    """
     model = get_model()
     faiss_index, metadata = get_index()
 
@@ -54,7 +68,7 @@ def retrieve(query: str, k: int = 5) -> list[dict]:
             {
                 "score": float(distances[0][i]),
                 "content": record.get("content", ""),
-                "metadata": {key: val for key, val in record.items() if key != "content"},
+                "metadata": {field: val for field, val in record.items() if field != "content"},
             }
         )
     return results

@@ -12,6 +12,7 @@ tenacity==9.1.4
 # Note: sentence-transformers pulls in torch (~2 GB) — allow extra install time
 sentence-transformers==5.5.1
 faiss-cpu==1.14.3
+cachetools==6.1.0
 
 # CMS adapter — optional; remove if not using Contentful
 contentful_management==2.15.2
