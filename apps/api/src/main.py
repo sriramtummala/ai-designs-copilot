@@ -28,6 +28,7 @@ from engine import WorkflowEngine
 from states import ContentWorkflowState
 from libs.content_transformer.transformer import transform_content
 from libs.content_transformer.schema import BlogPostSchema, LandingPageSchema
+from libs.compliance.compliance_service import ComplianceService
 from mock_adapter import MockCMSAdapter
 from contentful_adapter import ContentfulAdapter  # type: ignore[import]
 from interface import CMSAdapter, PublishResult
@@ -46,11 +47,12 @@ workflow_store: dict[str, WorkflowEngine] = {}
 
 openai_client: OpenAI | None = None
 cms_adapter: CMSAdapter | None = None
+compliance_service: ComplianceService | None = None
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    global openai_client, cms_adapter
+    global openai_client, cms_adapter, compliance_service
     logger.info("Starting up: loading RAG components...")
     get_model()
     get_index()
@@ -71,11 +73,14 @@ async def lifespan(_app: FastAPI):
     else:
         cms_adapter = MockCMSAdapter()
         logger.info("CMS adapter: MockCMSAdapter (CONTENTFUL env vars not set)")
+    compliance_service = ComplianceService()
+    logger.info("Compliance service initialized.")
     os.makedirs(os.path.dirname(FEEDBACK_LOG_FILE), exist_ok=True)
     yield
     logger.info("Shutting down.")
     openai_client = None
     cms_adapter = None
+    compliance_service = None
 
 
 app = FastAPI(
@@ -435,6 +440,7 @@ class TransformResponse(BaseModel):
 
 class PublishRequest(BaseModel):
     content_type: PageType = Field(..., description="Target schema and CMS content type.")
+    brand: Brand = Field(..., description="Brand to validate against.")
     raw_llm_output: str = Field(..., description="Raw JSON string from the LLM to transform and publish.")
 
 
@@ -443,6 +449,8 @@ class PublishResponse(BaseModel):
     status: str
     url: Optional[str] = None
     content_type: str
+    is_compliant: bool
+    compliance_findings: List[dict]
     structured_content: dict
 
 
@@ -500,12 +508,25 @@ async def publish_content(request: PublishRequest):
         structured = transform_content(request.raw_llm_output, schema_cls)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+    compliance = compliance_service.validate(structured, request.brand.value)
+    if not compliance.is_compliant:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Content failed compliance checks. Publishing blocked.",
+                "findings": [f.model_dump() for f in compliance.details if f.status == "FAIL"],
+            },
+        )
+
     result = await cms_adapter.publish(structured)
     return PublishResponse(
         content_id=result.content_id,
         status=result.status,
         url=result.url,
         content_type=request.content_type.value,
+        is_compliant=compliance.is_compliant,
+        compliance_findings=[f.model_dump() for f in compliance.details],
         structured_content=structured.model_dump(),
     )
 
