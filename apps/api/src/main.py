@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import uuid
+import asyncio
 from contextlib import asynccontextmanager
 from enum import Enum
 from typing import List, Optional
@@ -28,7 +29,8 @@ from states import ContentWorkflowState
 from libs.content_transformer.transformer import transform_content
 from libs.content_transformer.schema import BlogPostSchema, LandingPageSchema
 from mock_adapter import MockCMSAdapter
-from interface import PublishResult
+from contentful_adapter import ContentfulAdapter  # type: ignore[import]
+from interface import CMSAdapter, PublishResult
 
 FEEDBACK_LOG_FILE = "./data/feedback.jsonl"
 
@@ -43,7 +45,7 @@ workflow_store: dict[str, WorkflowEngine] = {}
 # --- Lifespan ---
 
 openai_client: OpenAI | None = None
-cms_adapter: MockCMSAdapter | None = None
+cms_adapter: CMSAdapter | None = None
 
 
 @asynccontextmanager
@@ -59,8 +61,16 @@ async def lifespan(_app: FastAPI):
     else:
         openai_client = OpenAI(api_key=api_key)
         logger.info("OpenAI client initialized.")
-    cms_adapter = MockCMSAdapter()
-    logger.info("CMS adapter initialized.")
+    if os.getenv("CONTENTFUL_SPACE_ID") and os.getenv("CONTENTFUL_MANAGEMENT_TOKEN"):
+        try:
+            cms_adapter = ContentfulAdapter()
+            logger.info("CMS adapter: Contentful (space=%s)", os.getenv("CONTENTFUL_SPACE_ID"))
+        except Exception as e:
+            logger.warning("ContentfulAdapter init failed (%s) — falling back to MockCMSAdapter", e)
+            cms_adapter = MockCMSAdapter()
+    else:
+        cms_adapter = MockCMSAdapter()
+        logger.info("CMS adapter: MockCMSAdapter (CONTENTFUL env vars not set)")
     os.makedirs(os.path.dirname(FEEDBACK_LOG_FILE), exist_ok=True)
     yield
     logger.info("Shutting down.")
@@ -546,7 +556,7 @@ async def advance_workflow_state(workflow_id: str, request: WorkflowTransitionRe
         engine.metadata.get("notes")
         or f"Process {engine.metadata.get('page_type', 'content')} for {engine.metadata.get('brand', 'the brand')}"
     )
-    engine.execute_agent_action(user_input)
+    await asyncio.to_thread(engine.execute_agent_action, user_input)
     return engine.get_status()
 
 
